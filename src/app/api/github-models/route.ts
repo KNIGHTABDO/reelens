@@ -4,100 +4,67 @@ const GH_MODELS_BASE = 'https://models.inference.ai.azure.com'
 
 export async function POST(req: NextRequest) {
   try {
-    const { action, token, model, messages, stream } = await req.json()
+    const { action, token, model, messages, systemPrompt, stream } = await req.json()
     const ghToken = token || process.env.GITHUB_TOKEN || ''
 
-    if (!ghToken) return NextResponse.json({ error: 'No GitHub token configured' }, { status: 400 })
+    if (!ghToken) return NextResponse.json({ error: 'No GitHub token provided' }, { status: 400 })
 
-    // --- List models ---
     if (action === 'list') {
+      // List available models from GitHub Models catalog
       const res = await fetch(`${GH_MODELS_BASE}/models`, {
-        headers: { Authorization: `Bearer ${ghToken}`, 'Content-Type': 'application/json' },
-        next: { revalidate: 3600 },
+        headers: {
+          Authorization: `Bearer ${ghToken}`,
+          'Content-Type': 'application/json',
+        },
       })
       if (!res.ok) {
         const body = await res.text()
-        return NextResponse.json({ error: `GitHub Models API error: ${res.status} ${body.slice(0, 200)}` }, { status: res.status })
+        return NextResponse.json({ error: `GitHub API error: ${res.status} ${body.slice(0, 200)}` }, { status: res.status })
       }
       const data = await res.json()
-      // Return just the model IDs + friendly names
-      const models = (Array.isArray(data) ? data : data.data || data.models || []).map((m: Record<string, string>) => ({
-        id: m.id || m.name,
-        name: m.friendly_name || m.display_name || m.id || m.name,
-        provider: m.publisher || m.provider || '',
-      }))
+      // data is an array of model objects
+      const models = (Array.isArray(data) ? data : data.data || [])
+        .filter((m: {friendly_name?: string; name?: string; id?: string; publisher?: string; task?: string}) => 
+          m.task === 'chat-completion' || m.friendly_name || m.name
+        )
+        .map((m: {friendly_name?: string; name?: string; id?: string; publisher?: string}) => ({
+          id: m.name || m.id || '',
+          name: m.friendly_name || m.name || m.id || '',
+          provider: m.publisher || '',
+        }))
+        .filter((m: {id: string}) => m.id)
       return NextResponse.json({ models })
     }
 
-    // --- Chat completion (streaming) ---
     if (action === 'chat') {
-      if (!model || !messages?.length) {
-        return NextResponse.json({ error: 'model and messages required' }, { status: 400 })
-      }
+      // Non-streaming chat for GitHub Models
+      const modelId = model || 'gpt-4o-mini'
+      const msgs = []
+      if (systemPrompt) msgs.push({ role: 'system', content: systemPrompt })
+      if (messages) msgs.push(...messages)
 
       const res = await fetch(`${GH_MODELS_BASE}/chat/completions`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${ghToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, messages, stream: true, max_tokens: 1500 }),
+        headers: {
+          Authorization: `Bearer ${ghToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: modelId,
+          messages: msgs,
+          max_tokens: 1200,
+          stream: false,
+        }),
       })
 
       if (!res.ok) {
         const body = await res.text()
-        return new Response(
-          `data: ${JSON.stringify({ error: `GitHub Models error: ${res.status} ${body.slice(0, 300)}` })}\n\n`,
-          { headers: { 'Content-Type': 'text/event-stream' } }
-        )
+        return NextResponse.json({ error: `GitHub Models error: ${res.status} ${body.slice(0, 300)}` }, { status: res.status })
       }
 
-      // Forward SSE stream
-      const readableStream = new ReadableStream({
-        async start(controller) {
-          const encoder = new TextEncoder()
-          const reader = res.body!.getReader()
-          const decoder = new TextDecoder()
-          let buffer = ''
-
-          try {
-            while (true) {
-              const { done, value } = await reader.read()
-              if (done) break
-              buffer += decoder.decode(value, { stream: true })
-              const lines = buffer.split('\n')
-              buffer = lines.pop() || ''
-
-              for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                  const payload = line.slice(6).trim()
-                  if (payload === '[DONE]') {
-                    controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-                    continue
-                  }
-                  try {
-                    const chunk = JSON.parse(payload)
-                    const text = chunk.choices?.[0]?.delta?.content || ''
-                    if (text) {
-                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
-                    }
-                  } catch { /* skip malformed */ }
-                }
-              }
-            }
-            controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-          } catch (e) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: String(e) })}\n\n`))
-          } finally {
-            controller.close()
-          }
-        }
-      })
-
-      return new Response(readableStream, {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        }
-      })
+      const data = await res.json()
+      const text = data.choices?.[0]?.message?.content || ''
+      return NextResponse.json({ text })
     }
 
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
