@@ -4,11 +4,14 @@ const SOCIALKIT_KEY = process.env.SOCIALKIT_API_KEY || ''
 const BASE = 'https://api.socialkit.dev'
 
 async function fetchJson(url: string, key: string) {
-  const res = await fetch(url, {
-    headers: { 'X-API-Key': key, 'Content-Type': 'application/json' },
+  const sep = url.includes('?') ? '&' : '?'
+  const res = await fetch(`${url}${sep}access_key=${key}`, {
     next: { revalidate: 0 },
   })
-  if (!res.ok) throw new Error(`HTTP ${res.status} from ${url}`)
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`HTTP ${res.status} from ${url}: ${body.slice(0, 200)}`)
+  }
   return res.json()
 }
 
@@ -23,49 +26,62 @@ export async function POST(req: NextRequest) {
 
     // Parallel fetch: stats, transcript, comments, summary
     const [statsRes, transcriptRes, commentsRes, summaryRes] = await Promise.allSettled([
-      fetchJson(`${BASE}/v1/video/stats?url=${encoded}`, key),
-      fetchJson(`${BASE}/v1/video/transcript?url=${encoded}`, key),
-      fetchJson(`${BASE}/v1/video/comments?url=${encoded}&limit=20`, key),
-      fetchJson(`${BASE}/v1/video/summary?url=${encoded}`, key),
+      fetchJson(`${BASE}/tiktok/stats?url=${encoded}`, key),
+      fetchJson(`${BASE}/tiktok/transcript?url=${encoded}`, key),
+      fetchJson(`${BASE}/tiktok/comments?url=${encoded}&limit=20`, key),
+      fetchJson(`${BASE}/tiktok/summarize?url=${encoded}`, key),
     ])
 
-    const stats = statsRes.status === 'fulfilled' ? statsRes.value : null
+    const stats     = statsRes.status     === 'fulfilled' ? statsRes.value     : null
     const transcript = transcriptRes.status === 'fulfilled' ? transcriptRes.value : null
-    const comments = commentsRes.status === 'fulfilled' ? commentsRes.value : null
-    const summary = summaryRes.status === 'fulfilled' ? summaryRes.value : null
+    const comments  = commentsRes.status   === 'fulfilled' ? commentsRes.value   : null
+    const summary   = summaryRes.status    === 'fulfilled' ? summaryRes.value    : null
 
-    // Extract data
-    const videoData = stats?.data || stats || {}
-    const transcriptText = transcript?.data?.transcript || transcript?.transcript || ''
-    const segments = transcript?.data?.segments || transcript?.segments || []
-    const topComments = (comments?.data?.comments || comments?.comments || []).slice(0, 15)
-    const aiSummary = summary?.data?.summary || summary?.summary || ''
-    const hashtags: string[] = videoData.hashtags || extractHashtags(videoData.description || videoData.caption || '')
-    const caption = videoData.description || videoData.caption || videoData.title || ''
+    // Log errors for debugging
+    if (statsRes.status === 'rejected')      console.error('stats error:', statsRes.reason)
+    if (transcriptRes.status === 'rejected') console.error('transcript error:', transcriptRes.reason)
+    if (commentsRes.status === 'rejected')   console.error('comments error:', commentsRes.reason)
+    if (summaryRes.status === 'rejected')    console.error('summary error:', summaryRes.reason)
+
+    // SocialKit response field mapping (from docs):
+    // stats: { title, author, likes, comment_count, share_count, view_count, description, duration, thumbnail }
+    // transcript: { transcript, word_count, segment_count, subtitles, segments }
+    // comments: { comments: [{ text, ... }] } or array
+    // summarize: { summary }
+    const statsData = stats?.data || stats || {}
+    const transcriptText = transcript?.transcript || transcript?.data?.transcript || ''
+    const segments = transcript?.segments || transcript?.data?.segments || []
+    const rawComments = comments?.comments || comments?.data?.comments || []
+    const topComments = Array.isArray(rawComments) ? rawComments.slice(0, 15) : []
+    const aiSummary = summary?.summary || summary?.data?.summary || ''
+
+    const description = statsData.description || statsData.title || ''
+    const hashtags: string[] = statsData.hashtags || extractHashtags(description)
+    const caption = description
 
     return NextResponse.json({
       success: true,
       video: {
         url,
         platform: url.includes('tiktok') ? 'tiktok' : 'instagram',
-        title: videoData.title || caption.slice(0, 80) || 'Untitled Video',
+        title: statsData.title || caption.slice(0, 80) || 'Untitled Video',
         caption,
         hashtags,
         author: {
-          username: videoData.author?.username || videoData.authorName || videoData.username || 'unknown',
-          displayName: videoData.author?.displayName || videoData.authorDisplayName || videoData.displayName || '',
-          avatar: videoData.author?.avatar || videoData.authorAvatar || '',
-          followers: videoData.author?.followers || videoData.authorFollowers || 0,
+          username:    statsData.author || statsData.username || 'unknown',
+          displayName: statsData.author || '',
+          avatar:      statsData.avatar || statsData.author_avatar || '',
+          followers:   statsData.followers || statsData.author_followers || 0,
         },
         stats: {
-          views: videoData.views || videoData.playCount || 0,
-          likes: videoData.likes || videoData.diggCount || 0,
-          shares: videoData.shares || videoData.shareCount || 0,
-          comments: videoData.comments || videoData.commentCount || 0,
-          duration: videoData.duration || 0,
+          views:    statsData.view_count    || statsData.views    || statsData.playCount    || 0,
+          likes:    statsData.likes         || statsData.diggCount || 0,
+          shares:   statsData.share_count   || statsData.shares   || statsData.shareCount   || 0,
+          comments: statsData.comment_count || statsData.comments || statsData.commentCount || 0,
+          duration: statsData.duration || 0,
         },
-        thumbnail: videoData.thumbnail || videoData.cover || videoData.thumbnailUrl || '',
-        publishedAt: videoData.publishedAt || videoData.createTime || '',
+        thumbnail:   statsData.thumbnail || statsData.cover || statsData.thumbnail_url || '',
+        publishedAt: statsData.publishedAt || statsData.create_time || statsData.createTime || '',
         transcript: transcriptText,
         segments,
         topComments,
