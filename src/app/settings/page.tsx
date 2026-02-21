@@ -3,14 +3,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useLanguage } from '@/lib/language-context'
 import { cn } from '@/lib/utils'
-import { Globe, Key, Smartphone, Check, Eye, EyeOff, Github, Cpu, RefreshCw, ChevronDown } from 'lucide-react'
+import { Globe, Key, Smartphone, Check, Eye, EyeOff, Github, Cpu, RefreshCw, ChevronDown, X } from 'lucide-react'
 
 type GhModel = { id: string; name: string; provider: string }
 
 export default function SettingsPage() {
   const { t, dir, locale, setLocale } = useLanguage()
 
-  // Keys
   const [geminiKey, setGeminiKey] = useState('')
   const [socialkitKey, setSocialkitKey] = useState('')
   const [githubToken, setGithubToken] = useState('')
@@ -18,16 +17,13 @@ export default function SettingsPage() {
   const [showSocialkit, setShowSocialkit] = useState(false)
   const [showGithub, setShowGithub] = useState(false)
   const [saved, setSaved] = useState(false)
-
-  // Provider
   const [provider, setProvider] = useState<'gemini' | 'github'>('gemini')
-
-  // GitHub Models
   const [ghModels, setGhModels] = useState<GhModel[]>([])
   const [selectedModel, setSelectedModel] = useState('gpt-4o-mini')
   const [loadingModels, setLoadingModels] = useState(false)
   const [modelsError, setModelsError] = useState('')
-  const [showModelDrop, setShowModelDrop] = useState(false)
+  const [showModelSheet, setShowModelSheet] = useState(false)
+  const [modelSearch, setModelSearch] = useState('')
 
   useEffect(() => {
     setGeminiKey(localStorage.getItem('reelens-gemini-key') || '')
@@ -38,19 +34,20 @@ export default function SettingsPage() {
   }, [])
 
   const fetchModels = useCallback(async (token?: string) => {
-    const t = token || githubToken
-    if (!t) { setModelsError(dir === 'rtl' ? 'أدخل رمز GitHub أولاً' : 'Enter GitHub token first'); return }
+    const tk = token || githubToken
+    if (!tk) { setModelsError(dir === 'rtl' ? 'أدخل رمز GitHub أولاً' : 'Enter GitHub token first'); return }
     setLoadingModels(true)
     setModelsError('')
     try {
       const res = await fetch('/api/github-models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'list', token: t }),
+        body: JSON.stringify({ action: 'list', token: tk }),
       })
       const data = await res.json()
       if (!res.ok || data.error) { setModelsError(data.error || 'Failed'); return }
       setGhModels(data.models || [])
+      if (data.models?.length > 0) setShowModelSheet(true)
     } catch (e) {
       setModelsError(String(e))
     } finally {
@@ -73,6 +70,10 @@ export default function SettingsPage() {
   const labelCls = cn('text-sm font-medium text-white', isRtl && 'text-right')
   const descCls = cn('text-xs text-zinc-600', isRtl && 'text-right')
   const inputCls = 'w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-white/20 font-mono'
+
+  const filteredModels = ghModels.filter(m =>
+    !modelSearch || m.name.toLowerCase().includes(modelSearch.toLowerCase()) || m.provider.toLowerCase().includes(modelSearch.toLowerCase())
+  )
 
   function SectionHeader({ icon, label, desc }: { icon: React.ReactNode; label: string; desc: string }) {
     return (
@@ -116,6 +117,7 @@ export default function SettingsPage() {
   return (
     <div className={cn('min-h-screen px-4 py-10', isRtl && 'font-arabic')} dir={dir}>
       <div className="max-w-lg mx-auto space-y-5">
+
         {/* Header */}
         <div className={isRtl ? 'text-right' : ''}>
           <h1 className="text-2xl font-bold text-white">{t.settings.title}</h1>
@@ -160,7 +162,7 @@ export default function SettingsPage() {
           </div>
           {provider === 'github' && (
             <p className={cn('text-xs text-amber-400/80', isRtl && 'text-right')}>
-              {isRtl ? '⚡ يستخدم رمز GitHub الخاص بك وصول GitHub Copilot للنماذج' : '⚡ Uses your GitHub token with Copilot/GitHub Models access'}
+              {isRtl ? '⚡ يستخدم رمز GitHub الخاص بك — مجاني مع Copilot' : '⚡ Uses your GitHub token — free with Copilot access'}
             </p>
           )}
         </div>
@@ -172,25 +174,13 @@ export default function SettingsPage() {
             label={t.settings.apiKeys}
             desc={t.settings.apiKeysDesc}
           />
-
-          {/* Gemini key (always shown) */}
           <div className="space-y-1.5">
             <label className={cn('text-xs text-zinc-500', isRtl && 'block text-right')}>Gemini API Key</label>
-            <PasswordInput
-              value={geminiKey} onChange={setGeminiKey}
-              show={showGemini} onToggle={() => setShowGemini(!showGemini)}
-              placeholder="AIzaSy..."
-            />
+            <PasswordInput value={geminiKey} onChange={setGeminiKey} show={showGemini} onToggle={() => setShowGemini(!showGemini)} placeholder="AIzaSy..." />
           </div>
-
-          {/* SocialKit key */}
           <div className="space-y-1.5">
             <label className={cn('text-xs text-zinc-500', isRtl && 'block text-right')}>SocialKit API Key</label>
-            <PasswordInput
-              value={socialkitKey} onChange={setSocialkitKey}
-              show={showSocialkit} onToggle={() => setShowSocialkit(!showSocialkit)}
-              placeholder="sk_..."
-            />
+            <PasswordInput value={socialkitKey} onChange={setSocialkitKey} show={showSocialkit} onToggle={() => setShowSocialkit(!showSocialkit)} placeholder="sk_..." />
           </div>
         </div>
 
@@ -198,13 +188,13 @@ export default function SettingsPage() {
         <div className={sectionCls}>
           <SectionHeader
             icon={<Github className="w-4 h-4 text-zinc-400" />}
-            label={'GitHub Models'}
-            desc={isRtl ? 'GPT-4o وغيره عبر GitHub مجاناً مع Copilot' : 'GPT-4o, Llama & more via GitHub — free with Copilot'}
+            label="GitHub Models"
+            desc={isRtl ? 'GPT-4o وغيره عبر GitHub مجاناً مع Copilot' : 'GPT-4o, Llama & more — free with Copilot'}
           />
 
           <div className="space-y-1.5">
             <label className={cn('text-xs text-zinc-500', isRtl && 'block text-right')}>
-              {isRtl ? 'رمز GitHub الشخصي (PAT مع Copilot)' : 'GitHub Personal Access Token (with Copilot)'}
+              {isRtl ? 'رمز GitHub الشخصي (PAT)' : 'GitHub Personal Access Token (PAT)'}
             </label>
             <div className={cn('flex gap-2', isRtl && 'flex-row-reverse')}>
               <div className="flex-1 relative">
@@ -216,11 +206,8 @@ export default function SettingsPage() {
                   className={cn(inputCls, isRtl ? 'pr-3.5 pl-10 text-right' : 'pr-10')}
                   dir="ltr"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowGithub(!showGithub)}
-                  className={cn('absolute top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300', isRtl ? 'left-3' : 'right-3')}
-                >
+                <button type="button" onClick={() => setShowGithub(!showGithub)}
+                  className={cn('absolute top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300', isRtl ? 'left-3' : 'right-3')}>
                   {showGithub ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
@@ -229,51 +216,32 @@ export default function SettingsPage() {
                 disabled={loadingModels || !githubToken}
                 className="px-3 py-2 rounded-xl bg-white/[0.06] hover:bg-white/10 border border-white/[0.08] text-zinc-300 disabled:opacity-40 transition-all flex items-center gap-1.5"
               >
-                {loadingModels
-                  ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  : <RefreshCw className="w-3.5 h-3.5" />
-                }
+                <RefreshCw className={cn('w-3.5 h-3.5', loadingModels && 'animate-spin')} />
                 <span className="text-xs">{isRtl ? 'جلب' : 'Fetch'}</span>
               </button>
             </div>
             {modelsError && <p className="text-xs text-red-400">{modelsError}</p>}
           </div>
 
-          {/* Model selector */}
-          {ghModels.length > 0 && (
-            <div className="space-y-1.5">
-              <label className={cn('text-xs text-zinc-500', isRtl && 'block text-right')}>
-                {isRtl ? 'اختر النموذج' : 'Select Model'}
-              </label>
-              <div className="relative">
-                <button
-                  onClick={() => setShowModelDrop(!showModelDrop)}
-                  className={cn('w-full flex items-center justify-between px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white hover:border-white/20 transition-all', isRtl && 'flex-row-reverse')}
-                >
-                  <span>{ghModels.find(m => m.id === selectedModel)?.name || selectedModel}</span>
-                  <ChevronDown className={cn('w-4 h-4 text-zinc-500 transition-transform', showModelDrop && 'rotate-180')} />
-                </button>
-                {showModelDrop && (
-                  <div className="absolute top-full mt-1 w-full bg-[#111] border border-white/10 rounded-xl overflow-hidden z-20 shadow-2xl max-h-48 overflow-y-auto">
-                    {ghModels.map(m => (
-                      <button
-                        key={m.id}
-                        onClick={() => { setSelectedModel(m.id); setShowModelDrop(false) }}
-                        className={cn('w-full px-3.5 py-2.5 text-left text-sm hover:bg-white/[0.06] transition-colors', isRtl && 'text-right',
-                          selectedModel === m.id ? 'text-white bg-white/[0.04]' : 'text-zinc-400'
-                        )}
-                      >
-                        <span className="block">{m.name}</span>
-                        {m.provider && <span className="text-xs text-zinc-600">{m.provider}</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Selected model display */}
+          <div className="space-y-1.5">
+            <label className={cn('text-xs text-zinc-500', isRtl && 'block text-right')}>
+              {isRtl ? 'النموذج المختار' : 'Selected Model'}
+            </label>
+            <button
+              onClick={() => { if (ghModels.length > 0) setShowModelSheet(true) }}
+              className={cn(
+                'w-full flex items-center justify-between px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white hover:border-white/20 transition-all',
+                isRtl && 'flex-row-reverse',
+                ghModels.length === 0 && 'opacity-50 cursor-default'
+              )}
+            >
+              <span className="truncate">{ghModels.find(m => m.id === selectedModel)?.name || selectedModel}</span>
+              {ghModels.length > 0 && <ChevronDown className="w-4 h-4 text-zinc-500 flex-shrink-0 ml-2" />}
+            </button>
+          </div>
 
-          {/* Quick model buttons when no fetch done yet */}
+          {/* Quick select when no models fetched */}
           {ghModels.length === 0 && (
             <div className="space-y-1.5">
               <label className={cn('text-xs text-zinc-500', isRtl && 'block text-right')}>
@@ -281,13 +249,10 @@ export default function SettingsPage() {
               </label>
               <div className="flex flex-wrap gap-2">
                 {['gpt-4o', 'gpt-4o-mini', 'Meta-Llama-3.1-70B-Instruct', 'Mistral-Large'].map(m => (
-                  <button
-                    key={m}
-                    onClick={() => setSelectedModel(m)}
+                  <button key={m} onClick={() => setSelectedModel(m)}
                     className={cn('px-3 py-1.5 rounded-lg text-xs border transition-all',
                       selectedModel === m ? 'bg-white text-black border-white' : 'border-white/[0.08] text-zinc-400 hover:border-white/20 hover:text-white'
-                    )}
-                  >
+                    )}>
                     {m}
                   </button>
                 ))}
@@ -297,8 +262,7 @@ export default function SettingsPage() {
 
           <a
             href="https://github.com/settings/tokens/new?scopes=repo&description=REELENS"
-            target="_blank"
-            rel="noopener noreferrer"
+            target="_blank" rel="noopener noreferrer"
             className={cn('block text-xs text-zinc-600 hover:text-zinc-400 transition-colors underline-offset-2 underline', isRtl && 'text-right')}
           >
             {isRtl ? 'إنشاء رمز GitHub ←' : '→ Create GitHub token'}
@@ -320,11 +284,10 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Save button */}
+        {/* Save */}
         <button
           onClick={save}
-          className={cn(
-            'w-full py-3 rounded-2xl text-sm font-semibold transition-all',
+          className={cn('w-full py-3 rounded-2xl text-sm font-semibold transition-all',
             saved ? 'bg-green-500/90 text-white' : 'bg-white text-black hover:bg-zinc-100'
           )}
         >
@@ -334,6 +297,63 @@ export default function SettingsPage() {
           }
         </button>
       </div>
+
+      {/* Full-screen model picker sheet — renders outside the card flow so it never clips */}
+      {showModelSheet && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={() => setShowModelSheet(false)}>
+          <div
+            className="bg-[#0d0d0d] border-t border-white/[0.08] rounded-t-2xl max-h-[70vh] flex flex-col shadow-2xl"
+            onClick={e => e.stopPropagation()}
+            dir={dir}
+          >
+            {/* Sheet header */}
+            <div className={cn('flex items-center justify-between px-5 py-4 border-b border-white/[0.06]', isRtl && 'flex-row-reverse')}>
+              <p className="text-sm font-semibold text-white">
+                {isRtl ? `اختر النموذج (${ghModels.length})` : `Select Model (${ghModels.length})`}
+              </p>
+              <button onClick={() => setShowModelSheet(false)} className="p-1.5 rounded-lg hover:bg-white/5 text-zinc-500 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="px-4 py-3 border-b border-white/[0.04]">
+              <input
+                value={modelSearch}
+                onChange={e => setModelSearch(e.target.value)}
+                placeholder={isRtl ? 'ابحث عن نموذج...' : 'Search models...'}
+                className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-white/20"
+                dir={isRtl ? 'rtl' : 'ltr'}
+                autoFocus
+              />
+            </div>
+
+            {/* Model list — scrollable */}
+            <div className="overflow-y-auto flex-1">
+              {filteredModels.length === 0 ? (
+                <p className="text-center text-zinc-600 text-sm py-8">{isRtl ? 'لا توجد نتائج' : 'No results'}</p>
+              ) : (
+                filteredModels.map(m => (
+                  <button
+                    key={m.id}
+                    onClick={() => { setSelectedModel(m.id); setShowModelSheet(false) }}
+                    className={cn(
+                      'w-full px-5 py-3.5 flex items-center justify-between hover:bg-white/[0.04] transition-colors border-b border-white/[0.03] last:border-0',
+                      isRtl && 'flex-row-reverse'
+                    )}
+                  >
+                    <div className={isRtl ? 'text-right' : ''}>
+                      <p className={cn('text-sm', selectedModel === m.id ? 'text-white font-medium' : 'text-zinc-300')}>{m.name}</p>
+                      {m.provider && <p className="text-xs text-zinc-600 mt-0.5">{m.provider}</p>}
+                    </div>
+                    {selectedModel === m.id && <Check className="w-4 h-4 text-green-400 flex-shrink-0" />}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
