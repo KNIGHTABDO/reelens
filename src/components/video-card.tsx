@@ -39,13 +39,16 @@ interface Props {
 
 export function VideoCard({ video, className }: Props) {
   const { t, dir, locale } = useLanguage()
+  const isRtl = dir === 'rtl'
 
   const stats = [
-    { icon: Eye, label: t.analysis.views, value: formatNumber(video.stats.views) },
-    { icon: Heart, label: t.analysis.likes, value: formatNumber(video.stats.likes) },
-    { icon: Share2, label: t.analysis.shares, value: formatNumber(video.stats.shares) },
+    { icon: Eye,           label: t.analysis.views,          value: formatNumber(video.stats.views)    },
+    { icon: Heart,         label: t.analysis.likes,          value: formatNumber(video.stats.likes)    },
+    { icon: Share2,        label: t.analysis.shares,         value: formatNumber(video.stats.shares)   },
     { icon: MessageCircle, label: t.analysis.comments_count, value: formatNumber(video.stats.comments) },
   ]
+
+  const followersLabel = isRtl ? 'متابع' : 'followers'
 
   return (
     <div className={cn('space-y-4', className)} dir={dir}>
@@ -62,12 +65,12 @@ export function VideoCard({ video, className }: Props) {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             {video.stats.duration > 0 && (
-              <div className="absolute bottom-3 right-3 flex items-center gap-1 px-2 py-1 rounded-lg bg-black/60 text-white text-xs">
+              <div className={cn('absolute bottom-3 flex items-center gap-1 px-2 py-1 rounded-lg bg-black/60 text-white text-xs', isRtl ? 'left-3' : 'right-3')}>
                 <Clock className="w-3 h-3" />
                 <span>{Math.floor(video.stats.duration / 60)}:{String(video.stats.duration % 60).padStart(2, '0')}</span>
               </div>
             )}
-            <div className="absolute top-3 left-3">
+            <div className={cn('absolute top-3', isRtl ? 'right-3' : 'left-3')}>
               <span className={cn(
                 'px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider',
                 video.platform === 'tiktok'
@@ -82,20 +85,21 @@ export function VideoCard({ video, className }: Props) {
 
         <div className="p-4 space-y-3">
           {/* Author */}
-          <div className="flex items-center gap-3">
+          <div className={cn('flex items-center gap-3', isRtl && 'flex-row-reverse')}>
             {video.author.avatar && (
               <div className="w-9 h-9 rounded-full overflow-hidden bg-zinc-800 shrink-0">
                 <Image src={video.author.avatar} alt={video.author.username} width={36} height={36} className="object-cover" unoptimized />
               </div>
             )}
-            <div className="min-w-0">
+            <div className={cn('min-w-0', isRtl && 'text-right')}>
               <p className="text-sm font-medium text-white truncate">
-                {video.author.displayName || video.author.username}
+                {video.author.displayName || video.author.username || (isRtl ? 'مجهول' : 'Unknown')}
               </p>
               {video.author.username && (
-                <p className="text-xs text-zinc-500">@{video.author.username}
+                <p className="text-xs text-zinc-500 flex items-center gap-1 flex-wrap" dir="ltr">
+                  <span>@{video.author.username}</span>
                   {video.author.followers > 0 && (
-                    <span className="ml-1 text-zinc-600">· {formatNumber(video.author.followers)} followers</span>
+                    <span className="text-zinc-600">· {formatNumber(video.author.followers)} {followersLabel}</span>
                   )}
                 </p>
               )}
@@ -104,7 +108,7 @@ export function VideoCard({ video, className }: Props) {
               href={video.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-auto shrink-0 p-1.5 rounded-lg hover:bg-white/5 text-zinc-500 hover:text-white transition-colors"
+              className={cn('shrink-0 p-1.5 rounded-lg hover:bg-white/5 text-zinc-500 hover:text-white transition-colors', isRtl ? 'mr-auto' : 'ml-auto')}
               title={t.analysis.viewOriginal}
             >
               <ExternalLink className="w-3.5 h-3.5" />
@@ -113,14 +117,14 @@ export function VideoCard({ video, className }: Props) {
 
           {/* Caption */}
           {video.caption && (
-            <p className={cn('text-xs text-zinc-400 leading-relaxed line-clamp-3', dir === 'rtl' && 'text-right')}>
+            <p className={cn('text-xs text-zinc-400 leading-relaxed line-clamp-3', isRtl && 'text-right')}>
               {video.caption}
             </p>
           )}
 
           {/* Hashtags */}
           {video.hashtags.length > 0 && (
-            <div className={cn('flex flex-wrap gap-1.5', dir === 'rtl' && 'justify-end')}>
+            <div className={cn('flex flex-wrap gap-1.5', isRtl && 'justify-end')}>
               {video.hashtags.slice(0, 8).map(tag => (
                 <span key={tag} className="tag">#{tag}</span>
               ))}
@@ -134,13 +138,13 @@ export function VideoCard({ video, className }: Props) {
 
       {/* Stats */}
       <div className="glass rounded-2xl p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-3">{t.analysis.stats}</p>
+        <p className={cn('text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-3', isRtl && 'text-right')}>{t.analysis.stats}</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {stats.map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex flex-col items-center gap-1 p-3 rounded-xl bg-white/[0.02]">
               <Icon className="w-4 h-4 text-zinc-500" />
               <p className="text-lg font-semibold text-white">{value}</p>
-              <p className="text-[10px] text-zinc-600 uppercase tracking-wider">{label}</p>
+              <p className="text-[10px] text-zinc-600 uppercase tracking-wider text-center">{label}</p>
             </div>
           ))}
         </div>
@@ -149,8 +153,8 @@ export function VideoCard({ video, className }: Props) {
       {/* Hashtags section */}
       {video.hashtags.length > 0 && (
         <div className="glass rounded-2xl p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-3">{t.analysis.hashtags}</p>
-          <div className={cn('flex flex-wrap gap-2', dir === 'rtl' && 'justify-end')}>
+          <p className={cn('text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-3', isRtl && 'text-right')}>{t.analysis.hashtags}</p>
+          <div className={cn('flex flex-wrap gap-2', isRtl && 'justify-end')}>
             {video.hashtags.map(tag => (
               <span key={tag} className="tag text-xs">#{tag}</span>
             ))}
@@ -161,21 +165,21 @@ export function VideoCard({ video, className }: Props) {
       {/* Transcript */}
       {video.transcript && (
         <div className="glass rounded-2xl p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-3">{t.analysis.transcript}</p>
+          <p className={cn('text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-3', isRtl && 'text-right')}>{t.analysis.transcript}</p>
           <div className="max-h-40 overflow-y-auto">
             {video.segments.length > 0 ? (
               <div className="space-y-1.5">
                 {video.segments.map((seg, i) => (
-                  <div key={i} className={cn('flex gap-3 text-xs', dir === 'rtl' && 'flex-row-reverse')}>
-                    <span className="shrink-0 text-zinc-600 font-mono">
+                  <div key={i} className={cn('flex gap-3 text-xs', isRtl && 'flex-row-reverse')}>
+                    <span className="shrink-0 text-zinc-600 font-mono" dir="ltr">
                       {Math.floor(seg.start / 60)}:{String(Math.floor(seg.start % 60)).padStart(2, '0')}
                     </span>
-                    <span className="text-zinc-400">{seg.text}</span>
+                    <span className={cn('text-zinc-400', isRtl && 'text-right')}>{seg.text}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className={cn('text-xs text-zinc-400 leading-relaxed', dir === 'rtl' && 'text-right')}>
+              <p className={cn('text-xs text-zinc-400 leading-relaxed', isRtl && 'text-right')}>
                 {video.transcript}
               </p>
             )}
@@ -186,20 +190,22 @@ export function VideoCard({ video, className }: Props) {
       {/* Comments */}
       {video.topComments.length > 0 && (
         <div className="glass rounded-2xl p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-3">{t.analysis.comments}</p>
+          <p className={cn('text-[10px] font-semibold uppercase tracking-widest text-zinc-600 mb-3', isRtl && 'text-right')}>{t.analysis.comments}</p>
           <div className="space-y-2.5 max-h-52 overflow-y-auto">
             {video.topComments.slice(0, 10).map((c, i) => (
-              <div key={i} className={cn('flex gap-2', dir === 'rtl' && 'flex-row-reverse')}>
+              <div key={i} className={cn('flex gap-2', isRtl && 'flex-row-reverse')}>
                 <div className="shrink-0 w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center">
                   <span className="text-[9px] text-zinc-500">{i + 1}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  {c.username && <p className="text-[10px] text-zinc-600 mb-0.5">@{c.username}</p>}
-                  <p className={cn('text-xs text-zinc-400 leading-relaxed', dir === 'rtl' && 'text-right')}>
+                  {c.username && <p className={cn('text-[10px] text-zinc-600 mb-0.5', isRtl && 'text-right')}>@{c.username}</p>}
+                  <p className={cn('text-xs text-zinc-400 leading-relaxed', isRtl && 'text-right')}>
                     {c.text || c.comment}
                   </p>
                   {c.likes && c.likes > 0 && (
-                    <p className="text-[10px] text-zinc-700 mt-0.5">♥ {formatNumber(c.likes)}</p>
+                    <p className={cn('text-[10px] text-zinc-700 mt-0.5 flex items-center gap-1', isRtl && 'flex-row-reverse')}>
+                      <span>♥</span> <span>{formatNumber(c.likes)}</span>
+                    </p>
                   )}
                 </div>
               </div>
