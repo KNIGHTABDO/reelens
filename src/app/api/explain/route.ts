@@ -27,15 +27,10 @@ Analyze the video's energy and adapt your writing style to match:
 STRUCTURE (Always use this — adapt tone within it)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 1. **Opening Hook** — One powerful sentence that captures the video's essence. Make it memorable.
-
 2. **What's Happening** — A clear, engaging explanation of the video content. Not just "summary" — give it life. Use the transcript and caption to be accurate.
-
 3. **The Context** — Why does this video exist? What trend, moment, or emotion drives it? Who is the creator and what's their world?
-
 4. **Audience Response** — What are the comments telling us? What does the community feel about this? Synthesize comment sentiment.
-
 5. **Deeper Meaning** — What's the real message? What should the viewer take away? This is where you add your unique analytical layer.
-
 6. **Verdict** — One bold, opinionated closing statement. Score the video's impact (1-10) and explain why.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -62,12 +57,104 @@ NEVER DO THIS
 • Never ignore the style adaptation rule
 • Never write a wall of bullet points
 • Never sound like a robot or a Wikipedia article
-• Never exceed 1000 words total
-`
+• Never exceed 1000 words total`
+
+function buildPrompt(videoData: Record<string, unknown>, lang: string): string {
+  const stats = (videoData.stats as Record<string, unknown>) || {}
+  const author = (videoData.author as Record<string, unknown>) || {}
+  const topComments = (videoData.topComments as Array<Record<string, string>>) || []
+  return `Analyze this ${videoData.platform} video and write your explanation in ${lang}.
+
+VIDEO DATA:
+- Title/Caption: ${videoData.caption || videoData.title || 'No caption'}
+- Creator: @${author.username || 'unknown'} (${(stats.views as number)?.toLocaleString() || 0} views, ${(stats.likes as number)?.toLocaleString() || 0} likes)
+- Hashtags: ${(videoData.hashtags as string[])?.map((h: string) => '#' + h).join(' ') || 'None'}
+- Duration: ${stats.duration || 0}s | Published: ${videoData.publishedAt || 'Unknown'}
+
+TRANSCRIPT:
+${videoData.transcript || 'No transcript available — rely on caption and hashtags.'}
+
+TOP COMMENTS (${topComments.length} shown):
+${topComments.slice(0, 10).map((c) => `• "${c.text || c.comment || ''}"`)?.join('\n') || 'No comments available'}
+
+AI SUMMARY:
+${videoData.aiSummary || 'No summary available.'}
+
+Now write your REELENS explanation:`
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { videoData, locale, apiKey } = await req.json()
+    const { videoData, locale, apiKey, provider, githubToken, githubModel } = await req.json()
+    const lang = locale === 'ar' ? 'Arabic (العربية)' : 'English'
+    const prompt = buildPrompt(videoData, lang)
+
+    // ── GitHub Models path ──────────────────────────────────────
+    if (provider === 'github') {
+      const token = githubToken || process.env.GITHUB_TOKEN || ''
+      if (!token) {
+        const err = new TextEncoder().encode('data: {"error":"No GitHub token configured"}\n\n')
+        return new Response(err, { headers: { 'Content-Type': 'text/event-stream' } })
+      }
+
+      const model = githubModel || 'gpt-4o-mini'
+      const res = await fetch('https://models.inference.ai.azure.com/chat/completions', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: prompt },
+          ],
+          stream: true,
+          max_tokens: 1500,
+        }),
+      })
+
+      if (!res.ok) {
+        const body = await res.text()
+        const err = new TextEncoder().encode(`data: ${JSON.stringify({ error: `GitHub Models error ${res.status}: ${body.slice(0, 200)}` })}\n\n`)
+        return new Response(err, { headers: { 'Content-Type': 'text/event-stream' } })
+      }
+
+      const stream = new ReadableStream({
+        async start(controller) {
+          const encoder = new TextEncoder()
+          const reader = res.body!.getReader()
+          const decoder = new TextDecoder()
+          let buffer = ''
+          try {
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) break
+              buffer += decoder.decode(value, { stream: true })
+              const lines = buffer.split('\n')
+              buffer = lines.pop() || ''
+              for (const line of lines) {
+                if (!line.startsWith('data: ')) continue
+                const payload = line.slice(6).trim()
+                if (payload === '[DONE]') { controller.enqueue(encoder.encode('data: [DONE]\n\n')); continue }
+                try {
+                  const chunk = JSON.parse(payload)
+                  const text = chunk.choices?.[0]?.delta?.content || ''
+                  if (text) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
+                } catch { /* skip */ }
+              }
+            }
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+          } catch (e) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: String(e) })}\n\n`))
+          } finally { controller.close() }
+        }
+      })
+
+      return new Response(stream, {
+        headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' }
+      })
+    }
+
+    // ── Gemini path (default) ───────────────────────────────────
     const key = apiKey || process.env.GEMINI_API_KEY || ''
     if (!key) {
       const err = new TextEncoder().encode('data: {"error":"No Gemini API key configured"}\n\n')
@@ -75,31 +162,7 @@ export async function POST(req: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(key)
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      systemInstruction: SYSTEM_PROMPT,
-    })
-
-    const lang = locale === 'ar' ? 'Arabic (العربية)' : 'English'
-    const prompt = `Analyze this ${videoData.platform} video and write your explanation in ${lang}.
-
-VIDEO DATA:
-- Title/Caption: ${videoData.caption || videoData.title || 'No caption'}
-- Creator: @${videoData.author?.username || 'unknown'} (${videoData.stats?.views?.toLocaleString() || 0} views, ${videoData.stats?.likes?.toLocaleString() || 0} likes)
-- Hashtags: ${videoData.hashtags?.map((h: string) => '#' + h).join(' ') || 'None'}
-- Duration: ${videoData.stats?.duration || 0}s | Published: ${videoData.publishedAt || 'Unknown'}
-
-TRANSCRIPT:
-${videoData.transcript || 'No transcript available — rely on caption and hashtags.'}
-
-TOP COMMENTS (${videoData.topComments?.length || 0} shown):
-${videoData.topComments?.slice(0, 10).map((c: { text?: string; comment?: string }) => `• "${c.text || c.comment || ''}"`)?.join('\n') || 'No comments available'}
-
-AI SUMMARY:
-${videoData.aiSummary || 'No summary available.'}
-
-Now write your REELENS explanation:`
-
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash', systemInstruction: SYSTEM_PROMPT })
     const result = await model.generateContentStream(prompt)
 
     const stream = new ReadableStream({
@@ -108,25 +171,17 @@ Now write your REELENS explanation:`
         try {
           for await (const chunk of result.stream) {
             const text = chunk.text()
-            if (text) {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
-            }
+            if (text) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
           }
           controller.enqueue(encoder.encode('data: [DONE]\n\n'))
         } catch (e) {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: String(e) })}\n\n`))
-        } finally {
-          controller.close()
-        }
+        } finally { controller.close() }
       }
     })
 
     return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      }
+      headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' }
     })
   } catch (err) {
     return new Response(
