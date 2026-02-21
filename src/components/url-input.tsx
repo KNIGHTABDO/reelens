@@ -27,7 +27,7 @@ export function UrlInput() {
   function handleSubmit(submitUrl?: string) {
     const target = submitUrl || url
     if (!target.trim()) { setError(t.errors.invalidUrl); return }
-    if (!isValidVideoUrl(target.trim())) { setError(t.errors.notSupported); return }
+    if (!isValidVideoUrl(target.trim())) { setError(t.errors.invalidUrl); return }
     setError('')
     setLoading(true)
     router.push(`/analyze?url=${encodeURIComponent(target.trim())}`)
