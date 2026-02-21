@@ -1,13 +1,13 @@
-\'use client\'
+'use client'
 
-import { useEffect, useState, Suspense } from \'react\'
-import { useSearchParams, useRouter } from \'next/navigation\'
-import { useLanguage } from \'@/lib/language-context\'
-import { VideoCard } from \'@/components/video-card\'
-import { AiExplanation } from \'@/components/ai-explanation\'
-import { addToHistory } from \'@/lib/history\'
-import { cn } from \'@/lib/utils\'
-import { ArrowLeft, Copy, Check, RefreshCw } from \'lucide-react\'
+import { useEffect, useState, Suspense } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { useLanguage } from '@/lib/language-context'
+import { VideoCard } from '@/components/video-card'
+import { AiExplanation } from '@/components/ai-explanation'
+import { addToHistory } from '@/lib/history'
+import { cn } from '@/lib/utils'
+import { ArrowLeft, Copy, Check, RefreshCw } from 'lucide-react'
 
 type VideoData = {
   url: string
@@ -25,7 +25,7 @@ type VideoData = {
   aiSummary: string
 }
 
-const VIDEO_CACHE_PREFIX = \'reelens-video-cache-\'
+const VIDEO_CACHE_PREFIX = 'reelens-video-cache-'
 
 function getCachedVideo(url: string): VideoData | null {
   try {
@@ -44,23 +44,23 @@ function AnalyzeContent() {
   const { t, dir } = useLanguage()
   const searchParams = useSearchParams()
   const router = useRouter()
-  const url = searchParams.get(\'url\') || \'\'
+  const url = searchParams.get('url') || ''
 
   const [video, setVideo] = useState<VideoData | null>(null)
   const [loading, setLoading] = useState(false)
-  const [stage, setStage] = useState(\'\')
-  const [error, setError] = useState(\'\')
+  const [stage, setStage] = useState('')
+  const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
   const [fromCache, setFromCache] = useState(false)
 
   useEffect(() => {
-    if (!url) { router.push(\'/\'); return }
+    if (!url) { router.push('/'); return }
     analyze()
   }, [url]) // eslint-disable-line
 
   async function analyze(forceRefresh = false) {
     setLoading(true)
-    setError(\'\')
+    setError('')
 
     const cached = !forceRefresh ? getCachedVideo(url) : null
 
@@ -69,7 +69,7 @@ function AnalyzeContent() {
       setVideo(cached)
       setFromCache(true)
       setLoading(false)
-      setStage(\'\')
+      setStage('')
       return
     }
 
@@ -77,12 +77,12 @@ function AnalyzeContent() {
     setStage(t.analysis.loading)
 
     try {
-      const socialkitKey = typeof window !== \'undefined\' ? localStorage.getItem(\'reelens-socialkit-key\') || \'\' : \'\'
+      const socialkitKey = typeof window !== 'undefined' ? localStorage.getItem('reelens-socialkit-key') || '' : ''
 
       setStage(t.analysis.fetchingTranscript)
-      const res = await fetch(\'/api/analyze\', {
-        method: \'POST\',
-        headers: { \'Content-Type\': \'application/json\' },
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, apiKey: socialkitKey }),
       })
 
@@ -96,7 +96,7 @@ function AnalyzeContent() {
       addToHistory({
         id: data.video.url,
         url: data.video.url,
-        platform: data.video.platform as \'tiktok\' | \'instagram\',
+        platform: data.video.platform as 'tiktok' | 'instagram',
         title: data.video.title,
         author: data.video.author.username,
         thumbnail: data.video.thumbnail,
@@ -109,10 +109,10 @@ function AnalyzeContent() {
         }
       })
     } catch (err) {
-      setError(String(err).replace(\'Error: \', \'\'))
+      setError(String(err).replace('Error: ', ''))
     } finally {
       setLoading(false)
-      setStage(\'\')
+      setStage('')
     }
   }
 
@@ -124,28 +124,28 @@ function AnalyzeContent() {
 
   return (
     <div
-      className={cn(\'min-h-screen px-4 pb-20\', dir === \'rtl\' && \'font-arabic\')}
+      className={cn('min-h-screen px-4 pb-20', dir === 'rtl' && 'font-arabic')}
       dir={dir}
     >
       <div className="max-w-2xl mx-auto pt-8 space-y-6">
         {/* Top bar */}
-        <div className={cn(\'flex items-center justify-between\', dir === \'rtl\' && \'flex-row-reverse\')}>
+        <div className={cn('flex items-center justify-between', dir === 'rtl' && 'flex-row-reverse')}>
           <button
-            onClick={() => router.push(\'/\')}
+            onClick={() => router.push('/')}
             className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors"
           >
-            <ArrowLeft className={cn(\'w-4 h-4\', dir === \'rtl\' && \'rotate-180\')} />
+            <ArrowLeft className={cn('w-4 h-4', dir === 'rtl' && 'rotate-180')} />
             {t.analysis.analyzeAnother}
           </button>
-          <div className={cn(\'flex items-center gap-2\', dir === \'rtl\' && \'flex-row-reverse\')}>
+          <div className={cn('flex items-center gap-2', dir === 'rtl' && 'flex-row-reverse')}>
             {fromCache && (
               <button
                 onClick={() => analyze(true)}
                 className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-                title={t.analysis.refreshData || \'Refresh video data\'}
+                title={t.analysis.refreshData || 'Refresh video data'}
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                {t.analysis.refreshData || (dir === \'rtl\' ? \'تحديث\' : \'Refresh\')}
+                {t.analysis.refreshData || (dir === 'rtl' ? 'تحديث' : 'Refresh')}
               </button>
             )}
             <button
@@ -174,7 +174,7 @@ function AnalyzeContent() {
               onClick={() => analyze()}
               className="text-xs text-zinc-400 hover:text-white underline transition-colors"
             >
-              {t.errors?.retry || (dir === \'rtl\' ? \'حاول مجدداً\' : \'Try again\')}
+              {t.errors?.retry || (dir === 'rtl' ? 'حاول مجدداً' : 'Try again')}
             </button>
           </div>
         )}
