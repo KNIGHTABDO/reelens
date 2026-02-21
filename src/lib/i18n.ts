@@ -2,7 +2,6 @@ export type Locale = 'en' | 'ar'
 
 export const translations = {
   en: {
-    // Nav
     appName: 'REELENS',
     tagline: 'AI-Powered Video Explainer',
     nav: {
@@ -10,19 +9,17 @@ export const translations = {
       history: 'History',
       settings: 'Settings',
     },
-    // Landing
     hero: {
       badge: 'Powered by Gemini AI',
       title: 'Understand Any Video,',
       titleHighlight: 'Instantly.',
-      subtitle: 'Drop a TikTok or Instagram link. Get a deep, streaming AI explanation that matches the video's energy — transcripts, comments, hashtags and more.',
+      subtitle: "Drop a TikTok or Instagram link. Get a deep, streaming AI explanation that matches the video's energy — transcripts, comments, hashtags and more.",
       placeholder: 'Paste a TikTok or Instagram link...',
       cta: 'Analyze Video',
       analyzing: 'Analyzing...',
       orTry: 'or scroll from TikTok using the',
       shortcutLink: 'iOS Shortcut',
     },
-    // Features
     features: {
       title: 'Everything about a video,',
       titleHighlight: 'in seconds.',
@@ -30,12 +27,11 @@ export const translations = {
         { title: 'Full Transcript', desc: 'Word-for-word transcript with timestamps, extracted from the video audio.' },
         { title: 'Comments Analysis', desc: 'What the audience is really saying — top comments distilled into insights.' },
         { title: 'Hashtag & Caption', desc: 'All hashtags, captions, and metadata extracted and displayed cleanly.' },
-        { title: 'AI Explanation', desc: 'Streaming AI that adapts its style to the video — poetic, informative, or hype.' },
+        { title: 'AI Explanation', desc: "Streaming AI that adapts its style to the video — poetic, informative, or hype." },
         { title: 'Video Stats', desc: 'Views, likes, shares, engagement metrics at a glance.' },
-        { title: 'History', desc: 'Every video you've analyzed, saved locally for quick access.' },
+        { title: 'History', desc: "Every video you've analyzed, saved locally for quick access." },
       ]
     },
-    // Analysis page
     analysis: {
       loading: 'Fetching video data...',
       fetchingTranscript: 'Extracting transcript...',
@@ -58,7 +54,6 @@ export const translations = {
       copyLink: 'Copy Link',
       copied: 'Copied!',
     },
-    // History
     history: {
       title: 'History',
       subtitle: 'Your previously analyzed videos',
@@ -67,7 +62,6 @@ export const translations = {
       clearAll: 'Clear All',
       analyzedOn: 'Analyzed on',
     },
-    // Settings
     settings: {
       title: 'Settings',
       subtitle: 'Preferences & configuration',
@@ -93,7 +87,6 @@ export const translations = {
       theme: 'Appearance',
       themeDesc: 'Always dark — because dark mode is not optional.',
     },
-    // Errors
     errors: {
       invalidUrl: 'Please enter a valid TikTok or Instagram URL.',
       fetchFailed: 'Could not fetch video data. Please try again.',
@@ -102,7 +95,6 @@ export const translations = {
     },
   },
   ar: {
-    // Nav
     appName: 'ريلنز',
     tagline: 'شارح فيديو بالذكاء الاصطناعي',
     nav: {
@@ -110,7 +102,6 @@ export const translations = {
       history: 'السجل',
       settings: 'الإعدادات',
     },
-    // Landing
     hero: {
       badge: 'مدعوم بـ Gemini AI',
       title: 'افهم أي فيديو،',
@@ -122,7 +113,6 @@ export const translations = {
       orTry: 'أو شارك مباشرة من تيك توك عبر',
       shortcutLink: 'اختصار iOS',
     },
-    // Features
     features: {
       title: 'كل شيء عن الفيديو،',
       titleHighlight: 'في ثوانٍ.',
@@ -135,7 +125,6 @@ export const translations = {
         { title: 'السجل', desc: 'كل فيديو قمت بتحليله، محفوظ محلياً للوصول السريع.' },
       ]
     },
-    // Analysis page
     analysis: {
       loading: 'جاري جلب بيانات الفيديو...',
       fetchingTranscript: 'استخراج النص...',
@@ -158,7 +147,6 @@ export const translations = {
       copyLink: 'نسخ الرابط',
       copied: 'تم النسخ!',
     },
-    // History
     history: {
       title: 'السجل',
       subtitle: 'الفيديوهات التي حللتها سابقاً',
@@ -167,7 +155,6 @@ export const translations = {
       clearAll: 'مسح الكل',
       analyzedOn: 'تم التحليل في',
     },
-    // Settings
     settings: {
       title: 'الإعدادات',
       subtitle: 'التفضيلات والإعداد',
@@ -193,7 +180,6 @@ export const translations = {
       theme: 'المظهر',
       themeDesc: 'دائماً داكن — لأن الوضع الداكن ليس اختيارياً.',
     },
-    // Errors
     errors: {
       invalidUrl: 'الرجاء إدخال رابط تيك توك أو إنستغرام صحيح.',
       fetchFailed: 'تعذّر جلب بيانات الفيديو. يرجى المحاولة مرة أخرى.',
