@@ -16,9 +16,15 @@ export function extractVideoId(url: string): { platform: 'tiktok' | 'instagram' 
     const u = new URL(url)
     const host = u.hostname.replace('www.', '')
 
-    if (host === 'tiktok.com' || host === 'vm.tiktok.com' || host === 'm.tiktok.com') {
-      // e.g. /video/7234567890123456789 or short link
+    if (
+      host === 'tiktok.com' ||
+      host === 'vm.tiktok.com' ||
+      host === 'vt.tiktok.com' ||
+      host === 'm.tiktok.com'
+    ) {
+      // e.g. /video/7234567890123456789 or short link (vt.tiktok.com, vm.tiktok.com)
       const match = u.pathname.match(/\/video\/(\d+)/) || u.pathname.match(/\/@[^/]+\/video\/(\d+)/)
+      // For short links (vt/vm), pass the full URL as ID — SocialKit will resolve it
       return { platform: 'tiktok', id: match ? match[1] : url }
     }
 
@@ -46,10 +52,10 @@ export function timeAgo(dateStr: string, locale: 'en' | 'ar' = 'en'): string {
   const days = Math.floor(hours / 24)
 
   if (locale === 'ar') {
-    if (mins < 1) return 'الآن'
-    if (mins < 60) return `منذ ${mins} دقيقة`
-    if (hours < 24) return `منذ ${hours} ساعة`
-    return `منذ ${days} يوم`
+    if (mins < 1) return '\u0627\u0644\u0622\u0646'
+    if (mins < 60) return `\u0645\u0646\u0630 ${mins} \u062f\u0642\u064a\u0642\u0629`
+    if (hours < 24) return `\u0645\u0646\u0630 ${hours} \u0633\u0627\u0639\u0629`
+    return `\u0645\u0646\u0630 ${days} \u064a\u0648\u0645`
   }
 
   if (mins < 1) return 'just now'
