@@ -12,6 +12,8 @@ export default function SettingsPage() {
 
   const [geminiKey, setGeminiKey] = useState('')
   const [socialkitKey, setSocialkitKey] = useState('')
+  const [ensembleKey, setEnsembleKey] = useState('')
+  const [supadataKey, setSupadataKey] = useState('')
   const [githubToken, setGithubToken] = useState('')
   const [showGemini, setShowGemini] = useState(false)
   const [showSocialkit, setShowSocialkit] = useState(false)
@@ -28,6 +30,8 @@ export default function SettingsPage() {
   useEffect(() => {
     setGeminiKey(localStorage.getItem('reelens-gemini-key') || '')
     setSocialkitKey(localStorage.getItem('reelens-socialkit-key') || '')
+    setEnsembleKey(localStorage.getItem('reelens-ensemble-key') || '')
+    setSupadataKey(localStorage.getItem('reelens-supadata-key') || '')
     setGithubToken(localStorage.getItem('reelens-github-token') || '')
     setProvider((localStorage.getItem('reelens-provider') as 'gemini' | 'github') || 'gemini')
     setSelectedModel(localStorage.getItem('reelens-github-model') || 'gpt-4o-mini')
@@ -58,6 +62,8 @@ export default function SettingsPage() {
   function save() {
     localStorage.setItem('reelens-gemini-key', geminiKey)
     localStorage.setItem('reelens-socialkit-key', socialkitKey)
+    localStorage.setItem('reelens-ensemble-key', ensembleKey)
+    localStorage.setItem('reelens-supadata-key', supadataKey)
     localStorage.setItem('reelens-github-token', githubToken)
     localStorage.setItem('reelens-provider', provider)
     localStorage.setItem('reelens-github-model', selectedModel)
@@ -184,6 +190,48 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* EnsembleData */}
+        <div className={sectionCls}>
+          <SectionHeader
+            icon={<Key className="w-4 h-4 text-zinc-400" />}
+            label="EnsembleData"
+            desc={isRtl ? 'بديل مجاني: 50 طلب/يوم — إحصائيات + تعليقات' : 'Free fallback: 50 units/day — stats + comments'}
+          />
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <p className="text-xs text-emerald-400/90">
+                {isRtl ? 'مجاني 50 وحدة/يوم • بدون بطاقة ائتمانية' : 'Free 50 units/day • No credit card needed'}
+              </p>
+              <a href="https://ensembledata.com" target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-600 hover:text-zinc-400 ms-auto underline transition-colors">
+                {isRtl ? 'احصل على مفتاح' : 'Get key'}
+              </a>
+            </div>
+            <KeyInput value={ensembleKey} onChange={setEnsembleKey} show={showSocialkit} onToggle={() => setShowSocialkit(!showSocialkit)} placeholder="ed_..." />
+          </div>
+        </div>
+
+        {/* Supadata */}
+        <div className={sectionCls}>
+          <SectionHeader
+            icon={<Key className="w-4 h-4 text-zinc-400" />}
+            label="Supadata"
+            desc={isRtl ? 'بديل مجاني: 100 طلب — نصوص فيديو TikTok' : 'Free fallback: 100 requests — TikTok transcripts'}
+          />
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+              <p className="text-xs text-blue-400/90">
+                {isRtl ? 'مجاني 100 طلب • متخصص في النصوص' : 'Free 100 requests • Specialized in transcripts'}
+              </p>
+              <a href="https://supadata.ai" target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-600 hover:text-zinc-400 ms-auto underline transition-colors">
+                {isRtl ? 'احصل على مفتاح' : 'Get key'}
+              </a>
+            </div>
+            <KeyInput value={supadataKey} onChange={setSupadataKey} show={showSocialkit} onToggle={() => setShowSocialkit(!showSocialkit)} placeholder="sd_..." />
+          </div>
+        </div>
+
         {/* GitHub Models */}
         <div className={sectionCls}>
           <SectionHeader
@@ -300,9 +348,9 @@ export default function SettingsPage() {
 
       {/* Full-screen model picker sheet — renders outside the card flow so it never clips */}
       {showModelSheet && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={() => setShowModelSheet(false)}>
+        <div className="fixed inset-0 z-[9999] flex flex-col justify-end bg-black/60 backdrop-blur-sm" onClick={() => setShowModelSheet(false)}>
           <div
-            className="bg-[#0d0d0d] border-t border-white/[0.08] rounded-t-2xl max-h-[70vh] flex flex-col shadow-2xl"
+            className="bg-[#0d0d0d] border-t border-white/[0.08] rounded-t-2xl max-h-[88vh] flex flex-col shadow-2xl"
             onClick={e => e.stopPropagation()}
             dir={dir}
           >
@@ -338,7 +386,7 @@ export default function SettingsPage() {
                     key={m.id}
                     onClick={() => { setSelectedModel(m.id); setShowModelSheet(false) }}
                     className={cn(
-                      'w-full px-5 py-3.5 flex items-center justify-between hover:bg-white/[0.04] transition-colors border-b border-white/[0.03] last:border-0',
+                      'w-full px-5 py-4 flex items-center justify-between hover:bg-white/[0.06] active:bg-white/[0.08] transition-colors border-b border-white/[0.04] last:border-0',
                       isRtl && 'flex-row-reverse'
                     )}
                   >
