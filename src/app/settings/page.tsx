@@ -321,13 +321,35 @@ export default function SettingsPage() {
         <div className={sectionCls}>
           <SectionHeader
             icon={<Smartphone className="w-4 h-4 text-zinc-400" />}
-            label={t.settings.shortcut}
-            desc={t.settings.shortcutDesc}
+            label={isRtl ? 'اختصار iOS' : 'iOS Shortcut'}
+            desc={isRtl ? 'حلل أي فيديو مباشرة من زر المشاركة' : 'Analyze any video straight from the share sheet'}
           />
-          <div className={cn('space-y-3', isRtl && 'text-right')}>
-            <p className="text-xs text-zinc-500">{t.settings.shortcutSteps}</p>
-            <div className="bg-white/[0.03] rounded-xl p-3 font-mono text-xs text-zinc-400 break-all" dir="ltr">
-              https://reelens.vercel.app/analyze?url=[URL]
+          <div className="space-y-3">
+            {/* Big one-tap install button */}
+            <a
+              href="/reelens.shortcut"
+              download="REELENS.shortcut"
+              className={cn(
+                'flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-sm transition-all',
+                'bg-blue-500 hover:bg-blue-400 active:bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+              )}
+            >
+              <Smartphone className="w-4 h-4" />
+              {isRtl ? '⬇️ ثبّت الاختصار — نقرة واحدة' : '⬇️ Add to Shortcuts — one tap'}
+            </a>
+            <div className={cn('text-center text-xs text-zinc-600 space-y-0.5', isRtl && 'text-right')}>
+              <p>{isRtl ? '١. اضغط الزر أعلاه في Safari على iPhone' : '1. Tap the button above in Safari on iPhone'}</p>
+              <p>{isRtl ? '٢. اضغط "إضافة اختصار" في التطبيق' : '2. Tap "Add Shortcut" when prompted'}</p>
+              <p>{isRtl ? '٣. شارك أي فيديو → اختر REELENS' : '3. Share any video → choose REELENS ✓'}</p>
+            </div>
+            {/* How it works pill */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.05]">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
+              <p className="text-xs text-zinc-500">
+                {isRtl
+                  ? 'يفتح REELENS تلقائياً مع رابط الفيديو جاهزاً للتحليل'
+                  : 'Auto-opens REELENS with the video URL ready to analyze'}
+              </p>
             </div>
           </div>
         </div>
