@@ -322,33 +322,67 @@ export default function SettingsPage() {
           <SectionHeader
             icon={<Smartphone className="w-4 h-4 text-zinc-400" />}
             label={isRtl ? 'اختصار iOS' : 'iOS Shortcut'}
-            desc={isRtl ? 'حلل أي فيديو مباشرة من زر المشاركة' : 'Analyze any video straight from the share sheet'}
+            desc={isRtl ? 'حلل أي فيديو من زر المشاركة — 30 ثانية للإعداد' : 'Analyze any video from share sheet — 30s setup'}
           />
           <div className="space-y-3">
-            {/* Big one-tap install button */}
+            {/* Open Shortcuts app button */}
             <a
-              href="/reelens.shortcut"
-              download="REELENS.shortcut"
+              href="shortcuts://create-shortcut"
               className={cn(
                 'flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-sm transition-all',
                 'bg-blue-500 hover:bg-blue-400 active:bg-blue-600 text-white shadow-lg shadow-blue-500/20'
               )}
             >
               <Smartphone className="w-4 h-4" />
-              {isRtl ? '⬇️ ثبّت الاختصار — نقرة واحدة' : '⬇️ Add to Shortcuts — one tap'}
+              {isRtl ? 'افتح تطبيق الاختصارات' : 'Open Shortcuts App'}
             </a>
-            <div className={cn('text-center text-xs text-zinc-600 space-y-0.5', isRtl && 'text-right')}>
-              <p>{isRtl ? '١. اضغط الزر أعلاه في Safari على iPhone' : '1. Tap the button above in Safari on iPhone'}</p>
-              <p>{isRtl ? '٢. اضغط "إضافة اختصار" في التطبيق' : '2. Tap "Add Shortcut" when prompted'}</p>
-              <p>{isRtl ? '٣. شارك أي فيديو → اختر REELENS' : '3. Share any video → choose REELENS ✓'}</p>
+
+            {/* Step-by-step instructions */}
+            <div className="bg-white/[0.03] border border-white/[0.05] rounded-xl p-3.5 space-y-2.5">
+              <p className={cn('text-xs font-semibold text-zinc-400 uppercase tracking-wide', isRtl && 'text-right')}>
+                {isRtl ? 'أضف اختصاراً يدوياً في دقيقة واحدة:' : 'Create the shortcut manually in 1 minute:'}
+              </p>
+              {[
+                isRtl
+                  ? ['١', 'افتح الاختصارات ← اضغط + لاختصار جديد']
+                  : ['1', 'Open Shortcuts → tap + for a new shortcut'],
+                isRtl
+                  ? ['٢', 'ابحث عن إجراء "فتح عناوين URL" وأضفه']
+                  : ['2', 'Search for "Open URLs" action and add it'],
+                isRtl
+                  ? ['٣', 'في حقل الرابط، اكتب:']
+                  : ['3', 'In the URL field, type:'],
+                isRtl
+                  ? ['٤', 'اضغط على إدخال الاختصار ← اختر عنوان URL']
+                  : ['4', 'Tap Shortcut Input → choose URL'],
+                isRtl
+                  ? ['٥', 'سمّه REELENS واضغط تم']
+                  : ['5', 'Name it REELENS and tap Done'],
+                isRtl
+                  ? ['٦', 'شارك أي فيديو ← اختر REELENS ✓']
+                  : ['6', 'Share any video → tap REELENS ✓'],
+              ].map(([num, text], i) => (
+                <div key={i} className={cn('flex items-start gap-2.5', isRtl && 'flex-row-reverse')}>
+                  <span className="text-[10px] font-bold text-zinc-600 bg-white/[0.04] rounded-md px-1.5 py-0.5 flex-shrink-0 mt-0.5 min-w-[1.4rem] text-center">{num}</span>
+                  <span className="text-xs text-zinc-400 leading-relaxed">{text}</span>
+                </div>
+              ))}
             </div>
-            {/* How it works pill */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-400 flex-shrink-0" />
-              <p className="text-xs text-zinc-500">
-                {isRtl
-                  ? 'يفتح REELENS تلقائياً مع رابط الفيديو جاهزاً للتحليل'
-                  : 'Auto-opens REELENS with the video URL ready to analyze'}
+
+            {/* URL to copy */}
+            <div className="space-y-1.5">
+              <p className={cn('text-xs text-zinc-600', isRtl && 'text-right')}>
+                {isRtl ? 'الرابط الذي تضعه في الإجراء:' : 'URL to paste into the action:'}
+              </p>
+              <div
+                className="bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 font-mono text-xs text-zinc-300 break-all cursor-pointer select-all active:bg-white/[0.07] transition-colors"
+                dir="ltr"
+                onClick={() => navigator.clipboard?.writeText('https://reelens.vercel.app/analyze?url=')}
+              >
+                https://reelens.vercel.app/analyze?url=
+              </div>
+              <p className={cn('text-[10px] text-zinc-700', isRtl && 'text-right')}>
+                {isRtl ? 'اضغط لنسخ الرابط' : 'Tap to copy'}
               </p>
             </div>
           </div>
