@@ -94,14 +94,37 @@ export function AiExplanation({ videoData }: Props) {
     }
   }
 
-  // Render markdown-lite: **bold**, ## headers
+  // Render markdown: all heading levels, bold, italic, bullets, numbered lists, code
   function renderMarkdown(raw: string) {
-    return raw
-      .replace(/^## (.+)$/gm, '<h3 class="text-sm font-semibold text-white mt-4 mb-1.5">$1</h3>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
-      .replace(/\n/g, '<br/>')
+    // Process block-level first, then inline
+    let html = raw
+    // Decorative separator lines
+    html = html.replace(/^[─═━─]{3,}$/gm, '<hr class="border-0 border-t border-white/[0.06] my-3"/>')
+    // h1 → big heading
+    html = html.replace(/^# (.+)$/gm, '<h2 class="text-base font-bold text-white mt-5 mb-2 leading-snug">$1</h2>')
+    // h2 → medium heading  
+    html = html.replace(/^## (.+)$/gm, '<h3 class="text-sm font-semibold text-white mt-4 mb-1.5 leading-snug">$1</h3>')
+    // h3 → small subheading
+    html = html.replace(/^### (.+)$/gm, '<h4 class="text-[13px] font-medium text-zinc-200 mt-3 mb-1 leading-snug">$1</h4>')
+    // h4+ → inline label
+    html = html.replace(/^#{4,} (.+)$/gm, '<span class="text-xs font-semibold text-zinc-400 uppercase tracking-wide">$1</span>')
+    // Bullet points (•, -, *)
+    html = html.replace(/^[\u2022\-\*] (.+)$/gm, '<div class="flex gap-2 my-0.5 items-start"><span class="text-zinc-500 flex-shrink-0 leading-relaxed">•</span><span>$1</span></div>')
+    // Numbered lists
+    html = html.replace(/^(\d+)\. (.+)$/gm, '<div class="flex gap-2 my-0.5 items-start"><span class="text-zinc-500 flex-shrink-0 min-w-[1.2rem] leading-relaxed text-xs">$1.</span><span>$2</span></div>')
+    // Bold + Italic combined
+    html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong class="text-white font-semibold"><em>$1</em></strong>')
+    // Bold
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
+    // Italic
+    html = html.replace(/\*([^\n\*]+?)\*/g, '<em class="text-zinc-200">$1</em>')
+    // Inline code
+    html = html.replace(/\`(.+?)\`/g, '<code class="px-1 py-0.5 rounded bg-white/[0.06] text-xs text-zinc-300 font-mono">$1</code>')
+    // Double newlines → paragraph spacing
+    html = html.replace(/\n{2,}/g, '<br/><br/>')
+    html = html.replace(/\n/g, '<br/>')
+    return html
   }
-
   const isRtl = dir === 'rtl'
 
   return (
