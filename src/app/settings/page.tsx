@@ -207,7 +207,7 @@ export default function SettingsPage() {
                 {isRtl ? 'احصل على مفتاح' : 'Get key'}
               </a>
             </div>
-            <KeyInput value={ensembleKey} onChange={setEnsembleKey} show={showSocialkit} onToggle={() => setShowSocialkit(!showSocialkit)} placeholder="ed_..." />
+            <PasswordInput value={ensembleKey} onChange={setEnsembleKey} show={showSocialkit} onToggle={() => setShowSocialkit(!showSocialkit)} placeholder="ed_..." />
           </div>
         </div>
 
@@ -228,7 +228,7 @@ export default function SettingsPage() {
                 {isRtl ? 'احصل على مفتاح' : 'Get key'}
               </a>
             </div>
-            <KeyInput value={supadataKey} onChange={setSupadataKey} show={showSocialkit} onToggle={() => setShowSocialkit(!showSocialkit)} placeholder="sd_..." />
+            <PasswordInput value={supadataKey} onChange={setSupadataKey} show={showSocialkit} onToggle={() => setShowSocialkit(!showSocialkit)} placeholder="sd_..." />
           </div>
         </div>
 
